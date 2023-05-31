@@ -60,7 +60,7 @@ print(starDf.duplicated().value_counts())
 ## fasta of stars not in all_seq.tsv
 
 df2 = pd.read_table("~/Downloads/TEST_miRNAPlantPortal/all_seq-sRNA-SuLop.tsv")
-fw = open("absent_star_seq.tsv", "w")
+fw = open("tables/absent_star_seq.tsv", "w")
 for star in starDf.loc[~starDf.star.isin(df2.sequence), "star"].unique():
     mockExpression="\t".join(["0"] * 9)
     fw.write(f'{star}\tnovel-star\t{mockExpression}\n')

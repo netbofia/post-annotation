@@ -18,7 +18,7 @@ args = parser.parse_args()
 class SeqComparator:
     def __init__(self, args):
         self.patman = "/home/brunocosta/.Software/patman-1.2.2/patman"
-        self.reportFile = "Report.tsv"
+        self.reportFile = "reports/Report.tsv"
         self.file = args.file
         self.args = args
 
