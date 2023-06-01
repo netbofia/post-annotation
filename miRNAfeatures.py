@@ -6,7 +6,7 @@
 
 
 import argparse
-import glob
+import glob2
 from pathlib import Path
 import json
 import pandas as pd

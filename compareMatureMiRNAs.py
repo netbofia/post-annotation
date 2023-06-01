@@ -48,6 +48,8 @@ class SeqComparator:
                 resultSize = os.stat(f'{path}/result')
                 if resultSize.st_size == 0:
                     shutil.rmtree(path)
+                else:
+                    os.remove(f'{path}/all.fasta')
 
     def report(self):
         report = []
