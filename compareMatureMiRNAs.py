@@ -7,28 +7,33 @@ import os
 import shutil
 import re
 import subprocess
-
-parser = argparse.ArgumentParser(prog="compareMatureMiRNA", description="Compare all miRNAs against them selves")
-parser.add_argument("-f", "--file", help="TSV with expression")
-parser.add_argument("-r", "--report", help="Generate a report", action="store_true")
-parser.add_argument("-p", "--plot", help="Generate plots", action="store_true")
-args = parser.parse_args()
+import pandas as pd
+from tabulate import tabulate
 
 
 class SeqComparator:
-    def __init__(self, args):
-        self.patman = "/home/brunocosta/.Software/patman-1.2.2/patman"
+    def __init__(self, arguments):
+        install_patman_path = f'{os.environ["HOME"]}/.Software/patman-1.2.2/patman'
+        patman = shutil.which("patman")
+        if patman is None:
+            patman = install_patman_path
+        if patman is not None:
+            self.patman = patman
+        else:
+            print("Patman was not found!\nSource: https://bioinf.eva.mpg.de/patman/\nManual: https://bioinf.eva.mpg.de/patman/patman-1.2.html\nPaper: http://bioinformatics.oxfordjournals.org/cgi/reprint/24/13/1530 ")
         self.reportFile = "reports/Report.tsv"
-        self.file = args.file
-        self.args = args
+        self.file = arguments.file
+        self.args = arguments
+        self.start= arguments.start
+        self.end= arguments.end
 
     def append_star_sequences(self):
         print("Not implemented")
 
-    def merge(self):
+    def map(self):
         tsv = open(self.file, "r")
         sequences = [line.strip().split("\t")[0:2] for line in tsv.readlines()]
-        for mismatch in range(0, 3):
+        for mismatch in range(self.start, self.end):
             for idx, seq in enumerate(sequences[1::]):
                 path = f'vs/{mismatch}/{seq[0]}'
                 os.makedirs(path, exist_ok=True)
@@ -41,7 +46,7 @@ class SeqComparator:
                 fwAll.flush()
                 fwAll.close()
                 print(f'Mismatch:{mismatch} - {idx + 1}/{len(sequences) - 1}')
-                patman=self.patman
+                patman = self.patman
                 subprocess.run(f'{patman} -e {mismatch} -P {path}/{seq[0]}.fasta -D {path}/all.fasta -o {path}/result',
                                shell=True, check=True)
                 result = open(f'{path}/result', "r")
@@ -50,11 +55,23 @@ class SeqComparator:
                     shutil.rmtree(path)
                 else:
                     os.remove(f'{path}/all.fasta')
+                    os.remove(f'{path}/{seq[0]}.fasta')
+        self.merge()
+
+    def merge(self):
+        for mismatch in range(self.start, self.end):
+            print(f"Processing {mismatch}/{self.end-1}")
+            report_file = f'reports/Result-m{mismatch}.tsv'
+            subprocess.run(f'printf "target\tquery\tstart\tend\tstrand\tedits\n"  > {report_file}; for seq in '
+                           f'vs/{mismatch}/*; do cat $seq/result >> {report_file} ;done', shell=True, check=True)
+        print("Finished merge")
 
     def report(self):
+        # Deprecation Warning!
+        # Merges all the reports together
         report = []
         print("Starting")
-        for mismatch in range(0, 3):
+        for mismatch in range(self.start, self.end):
             print(f'Mismatch:{mismatch}')
             sequences = os.listdir(f'vs/{mismatch}')
             for sequence in sequences:
@@ -101,7 +118,72 @@ class SeqComparator:
         fw.flush()
         fw.close()
 
+    def stats(self):
+        for e in range(self.start, self.end):
+            sub_report = f"reports/Result-m{e}.tsv"
+            if os.path.exists(sub_report):
+                df = pd.read_table(sub_report, sep="\t")
+                seq_mapped = (len(df["query"].unique()))
+                mapped = len(df.drop_duplicates())
+                print(f'Edits={e} | {seq_mapped} sequences mapped to a total of {mapped} mappings.')
+            else:
+                print(f"No report found for edits={e}")
+    def tab(self, data):
+        print(tabulate(data, keys=data.keys))
+
+    def group(self):
+        # Group miRNAs into families for the most permissive edit report
+        edits = self.end-1
+
+        sub_report = f"reports/Result-m{edits}.tsv"
+        df = pd.read_table(sub_report, sep="\t")
+
+        df = df.astype({'edits': 'int'})
+        df = df.astype({'start': 'int'})
+        df = df.astype({'end': 'int'})
+
+        df['queryName'] = df['query'].str.split('_').str[1]
+        df['querySeq'] = df['query'].str.split('_').str[0]
+        df['targetName'] = df['target'].str.split('_').str[1]
+        df['targetSeq'] = df['target'].str.split('_').str[0]
+        df['family'] = ""
+
+        # novel-star count as novel
+        novel_seq = df[df["queryName"].str.startswith("novel")]["querySeq"].unique()
+        novel = len(novel_seq)
+        family = 0
+        print(f"Naming novel miRNAs with edit={edits}")
+        # Iterate all sequences of novel miRNAs
+        for querySequence in novel_seq:
+            for mapping in df[df["querySeq"] == querySequence].itertuples():
+                targetSequence = mapping.targetSeq
+                if mapping.family == "":
+                    df.loc[df["querySeq"] == querySequence, "family"] = family
+                    df = self.add_name_to_query(df, targetSequence, family)
+                    #print(family)
+            if len(df["family"].unique()) > family + 1:
+                family += 1
+
+        num_families = len(df['family'].unique())
+        print(f'That total of {num_families} families where generated out of {novel} novel sequences')
+        df.to_csv(f"reports/Result-e{edits}-families.tsv", sep="\t")
+        df.to_excel(f"reports/Result-e{edits}-families.xlsx")
+        #count families with cons
+
+    def add_name_to_query(self, dataf, query_sequence, counter):
+        # Recursive function that names miRNAs in the <dataf> dataframe
+        query_slice = dataf.loc[dataf["querySeq"] == query_sequence]
+        for query_row in query_slice.itertuples():
+            if query_row.family == "":
+                dataf.loc[query_row.Index, "family"] = counter
+                target_sequence = query_row.targetSeq
+                dataf = self.add_name_to_query(dataf, target_sequence, counter)
+        return dataf
+
     def plot(self):
+        # Deprecation Warning!
+        # Plots based on report file
+
         import matplotlib.pyplot as plt
         import pandas as pd
         df = pd.read_table(self.reportFile)
@@ -110,7 +192,7 @@ class SeqComparator:
         df = df.astype({'mismatch': 'int'})
         df = df.astype({'matches': 'int'})
 
-        ###Overview
+        # Overview
         title = f'Each series is a type of query with the specified number of possible mismatches'
         pt = pd.pivot_table(df, "matches", ["len"], ["mismatch", "query"], "sum")
         consCol = pt.columns.get_level_values(1) == "cons"
@@ -132,9 +214,9 @@ class SeqComparator:
         plt.xlabel("Length of Sequence")
         plt.ylabel("Total number of matches with other mature")
         plt.show()
-        plt.savefig(f'{title}.png')
+        plt.savefig(f'figures/{title}.png')
 
-        for mismatch in range(0, 3):
+        for mismatch in range(self.start, self.end):
             print(f'Mismatch:{mismatch}')
             subDf = df[df["mismatch"] == mismatch]
             # print(pd.crosstab(subDf['len'],subDf['mismatch']))
@@ -145,7 +227,7 @@ class SeqComparator:
 
             plt.xlabel("Length of Sequence")
             plt.ylabel("Total number of matches with other mature")
-            plt.savefig(title)
+            plt.savefig(f"figures/{title}.png")
             plt.clf()
 
             ## Cons match count
@@ -164,7 +246,7 @@ class SeqComparator:
             plt.plot(crossTable)
             plt.title(title)
             plt.ylabel("Total number of matches with other mature")
-            plt.savefig(title + ".png")
+            plt.savefig(f"figures/{title}.png")
 
             # for length in df["len"].unique():
             #    print(length)
@@ -173,17 +255,38 @@ class SeqComparator:
             #    plt.plot(subDf['mismatch'])
             #    plt.show()
 
-    def run(self):
-        if self.args.report:
-            self.report()
 
-        if self.args.plot:
-            self.plot()
+def main():
+    parser = argparse.ArgumentParser(prog="compareMatureMiRNA",
+                                     description="Compare all miRNAs against themselves")
+    parser.add_argument("-f", "--file", help="TSV with expression")
+    parser.add_argument("-r", "--report", help="Generate a report (Deprecated use)", action="store_true")
+    parser.add_argument("-s", "--start", help="Edits range start", type=int, default=0)
+    parser.add_argument("-e", "--end", help="Edits range end (<exclusive>, up to that number!)", type=int,
+                        default=1)
+    parser.add_argument("-p", "--plot", help="Generate plots (Deprecated use)", action="store_true")
+    parser.add_argument("-d", "--stats", help="Show table of simple stats", action="store_true")
+    parser.add_argument("-g", "--group", help="Group novel miRNAs into families of iso-forms (requires reports)", action="store_true")
 
-        if self.args.file:
-            self.merge()
+    parser.add_argument("-m", "--merge", help="Merge mapping results", action="store_true")
 
-comp = SeqComparator(args)
-comp.run()
+    args = parser.parse_args()
+    seq_comp = SeqComparator(args)
 
-##Or export to some other thing
+    if args.report:
+        seq_comp.report()
+    if args.plot:
+        seq_comp.plot()
+    if args.file:
+        args.map()
+    if args.merge:
+        seq_comp.merge()
+    if args.stats:
+        seq_comp.stats()
+    if args.group:
+        seq_comp.group()
+
+
+if __name__ == "__main__":
+    main()
+

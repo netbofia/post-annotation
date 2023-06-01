@@ -4,3 +4,4 @@ pandas
 tabulate
 xlsxwriter
 matplotlib
+mysql
