@@ -1,7 +1,7 @@
 glob2
 Path
 pandas
-tabulate
+from tabulate import tabulate
 xlsxwriter
 matplotlib
 mysql

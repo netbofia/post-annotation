@@ -7,25 +7,33 @@ import os
 import shutil
 import re
 import subprocess
+import sys
+
 import pandas as pd
 from tabulate import tabulate
+
+# TODO make report,figure,tables folder??
 
 
 class SeqComparator:
     def __init__(self, arguments):
-        install_patman_path = f'{os.environ["HOME"]}/.Software/patman-1.2.2/patman'
-        patman = shutil.which("patman")
-        if patman is None:
-            patman = install_patman_path
-        if patman is not None:
-            self.patman = patman
+        if arguments is None:
+            print("Missing input Error - Constructor initiated without argparser.")
+            sys.exit(1)
         else:
-            print("Patman was not found!\nSource: https://bioinf.eva.mpg.de/patman/\nManual: https://bioinf.eva.mpg.de/patman/patman-1.2.html\nPaper: http://bioinformatics.oxfordjournals.org/cgi/reprint/24/13/1530 ")
-        self.reportFile = "reports/Report.tsv"
-        self.file = arguments.file
-        self.args = arguments
-        self.start= arguments.start
-        self.end= arguments.end
+            install_patman_path = f'{os.environ["HOME"]}/.Software/patman-1.2.2/patman'
+            patman = shutil.which("patman")
+            if patman is None:
+                patman = install_patman_path
+            if patman is not None:
+                self.patman = patman
+            else:
+                print("Patman was not found!\nSource: https://bioinf.eva.mpg.de/patman/\nManual: https://bioinf.eva.mpg.de/patman/patman-1.2.html\nPaper: http://bioinformatics.oxfordjournals.org/cgi/reprint/24/13/1530 ")
+            self.reportFile = "reports/Report.tsv"
+            self.file = arguments.file
+            self.args = arguments
+            self.start = arguments.start
+            self.end = arguments.end
 
     def append_star_sequences(self):
         print("Not implemented")
@@ -168,6 +176,7 @@ class SeqComparator:
         print(f'That total of {num_families} families where generated out of {novel} novel sequences')
         df.to_csv(f"reports/Result-e{edits}-families.tsv", sep="\t")
         df.to_excel(f"reports/Result-e{edits}-families.xlsx")
+        print("Report exported to reports")
         #count families with cons
 
     def add_name_to_query(self, dataf, query_sequence, counter):
@@ -290,3 +299,6 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+def test_constructor():
+    SeqComparator({"start": "0"})
