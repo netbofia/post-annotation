@@ -1,0 +1,7 @@
+glob2
+Path
+pandas
+tabulate
+xlsxwriter
+matplotlib
+mysql

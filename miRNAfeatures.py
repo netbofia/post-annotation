@@ -3,10 +3,8 @@
 
 ######################################
 
-
-
 import argparse
-import glob
+import glob2
 from pathlib import Path
 import json
 import pandas as pd
@@ -29,7 +27,7 @@ def tab(dataframe):
 hairpinFiles = None
 if mircat_folder_path.is_dir():
     #Remove fixed in production
-    mircat_files = glob.glob(mircat_folder+'/*_mirbase_noncons_output_filteredfixed.csv')
+    mircat_files = glob2.glob(mircat_folder+'/*_mirbase_noncons_output_filteredfixed.csv')
 
 header="Chromosome,Start,End,Orientation,Abundance,Sequence,sRNA length,# Genomic Hits,Hairpin Length,Hairpin % G/C content,Minimum Free Energy,Adjusted MFE,miRNAstar,miRBaseID,pVal".split(",")
 df_list = [pd.read_csv(file, skiprows=1, header=None, sep=",", on_bad_lines="warn") for file in mircat_files]
@@ -60,9 +58,9 @@ print(starDf.duplicated().value_counts())
 ## fasta of stars not in all_seq.tsv
 
 df2 = pd.read_table("~/Downloads/TEST_miRNAPlantPortal/all_seq-sRNA-SuLop.tsv")
-fw = open("absent_star_seq.tsv", "w")
+fw = open("tables/absent_star_seq.tsv", "w")
 for star in starDf.loc[~starDf.star.isin(df2.sequence), "star"].unique():
-    mockExpression="\t".join(["0"] * 9)
+    mockExpression = "\t".join(["0"] * 9)
     fw.write(f'{star}\tnovel-star\t{mockExpression}\n')
 
 
@@ -81,27 +79,28 @@ for row in starDf.itertuples():
 #rename
 
 
-features = None
-scaffoldName = "NW_019827908.1"
-
-file = open(file, "r")
-header = file.readline().strip().split("\t")
-
-if filePath.is_file() :
-    features = [dict(zip(header,line.strip().split("\t"))) for line in file.readlines() if line.startswith(scaffoldName)]
-
-i=0
-export=[]
-for i,feature in enumerate(features):
-    export.append( {"name":f'miRNA{i}',"data":[{"chr":features[i]['chromossome'].split(" ",1)[0], "start": features[i]["Start"], "end": features[i]["End"],"type":"miRNA","sequence":features[i]["Sequence"],"MFE":features[i]["Minimum Free Energy"], "description": features[i]["chromossome"],"color":"red"  }]} )
+#features = None
+#scaffoldName = "NW_019827908.1"
 
 
+#file = open(file, "r")
+#header = file.readline().strip().split("\t")
+
+#if filePath.is_file() :
+#    features = [dict(zip(header,line.strip().split("\t"))) for line in file.readlines() if line.startswith(scaffoldName)]
+
+#i=0
+#export=[]
+#for i,feature in enumerate(features):
+#    export.append( {"name":f'miRNA{i}',"data":[{"chr":features[i]['chromossome'].split(" ",1)[0], "start": features[i]["Start"], "end": features[i]["End"],"type":"miRNA","sequence":features[i]["Sequence"],"MFE":features[i]["Minimum Free Energy"], "description": features[i]["chromossome"],"color":"red"  }]} )
 
 
 
-fw=open("/home/brunocosta/git/sRNA-Portal-workflow/public/javascripts/features/qsuber-miRNA.json","w")
-fw.write(json.dumps(export,indent=4))
-fw.flush()
-fw.close()
+
+
+#fw=open("/home/brunocosta/git/sRNA-Portal-workflow/public/javascripts/features/qsuber-miRNA.json","w")
+#fw.write(json.dumps(export,indent=4))
+#fw.flush()
+#fw.close()
 
 

@@ -5,7 +5,7 @@
 
 
 import argparse
-import glob
+import glob2
 from pathlib import Path
 import json
 import re
@@ -18,7 +18,7 @@ hairpinFolder = args.hairpinFolder
 hairpinFolderPath = Path(hairpinFolder)
 hairpinFiles = None
 if hairpinFolderPath.is_dir():
-    hairpinFiles = glob.glob(hairpinFolder+'/*_miRNA_hairpins_filtered.txt')
+    hairpinFiles = glob2.glob(hairpinFolder+'/*_miRNA_hairpins_filtered.txt')
 
 
 def parse_hairpin_files(hairpin_files):

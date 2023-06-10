@@ -47,6 +47,10 @@ for querySequence in df[df["queryName"] == "novel"]["querySeq"].unique():
         family += 1
 print(df['accession'])
 
+
+
+### Possible new stuff
+
 piv = pd.pivot_table(df, "query", "accession", "queryName", aggfunc="count")['novel']
 piv = pd.pivot_table(df, "queryName", "family", aggfunc="count")
 
