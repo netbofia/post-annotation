@@ -571,8 +571,7 @@ def main():
     if args.plot:
         seq_comp.plot()
     if args.file:
-        print("ignore")
-        # args.map()
+        args.map()
     if args.merge:
         seq_comp.merge()
     if args.stats:
