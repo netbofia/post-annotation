@@ -39,11 +39,13 @@ class SeqComparator:
             self.end = arguments.end
             self.mircat = arguments.mircat
             self.families = None
+            self.refactorStart = arguments.refactor
 
     def append_star_sequences(self):
         print("Not implemented")
 
-    def map(self):
+    def map(selPf):
+        # Runs Patman for each miRNA
         tsv = open(self.file, "r")
         sequences = [line.strip().split("\t")[0:2] for line in tsv.readlines()]
         for mismatch in range(self.start, self.end):
@@ -72,6 +74,7 @@ class SeqComparator:
         self.merge()
 
     def merge(self):
+        # Merges all the Patman mapping into a single report file
         for mismatch in range(self.start, self.end):
             print(f"Processing {mismatch}/{self.end - 1}")
             report_file = f'reports/Result-m{mismatch}.tsv'
@@ -132,6 +135,7 @@ class SeqComparator:
         fw.close()
 
     def stats(self):
+        # Not finished
         for e in range(self.start, self.end):
             sub_report = f"reports/Result-m{e}.tsv"
             if os.path.exists(sub_report):
@@ -470,6 +474,23 @@ class SeqComparator:
                 dataf = self.add_name_to_query(dataf, target_sequence, counter)
         return dataf
 
+    def refactor_families(self):
+        df = pd.read_table("tables/all_seq-fullname.tsv", sep="\t")
+        if df is None:
+            exp_mat_path = f"tables/all_seq-fullname.tsv"
+            if not os.path.exists(exp_mat_path):
+                print(f"Missing file: {exp_mat_path}")
+                sys.exit(2)
+            df = pd.read_table(exp_mat_path, sep="\t", dtype={"family": str})
+            df.drop("sequence.1", axis=1, inplace=True)
+            df.drop("Unnamed: 0", axis=1, inplace=True)
+            df.index = df.sequence
+            df.drop("sequence", axis=1, inplace=True)
+            df.dropna(how="all", inplace=True)
+            df = df[df.index.notnull()]
+
+
+
     def plot(self):
         # Deprecation Warning!
         # Plots based on report file
@@ -562,6 +583,7 @@ def main():
     parser.add_argument("-m", "--merge", help="Merge mapping results", action="store_true")
     parser.add_argument("--rm", help="Remove gaps in family sequential naming", action="store_true")
     parser.add_argument("--fullname", help="Adds a column with the full names", action="store_true")
+    parser.add_argument("--refactor", help="Changes family start number", type=int)
 
     args = parser.parse_args()
     seq_comp = SeqComparator(args)
@@ -584,7 +606,9 @@ def main():
         seq_comp.remove_gaps_in_families()
     if args.fullname:
         seq_comp.generate_full_names()
-
+    if args.refactor:
+        seq_comp.refactor_families()
 
 if __name__ == "__main__":
     main()
+

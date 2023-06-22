@@ -24,17 +24,18 @@ usage: compareMatureMiRNA [-h] [-f FILE] [-r] [-s START] [-e END] [-p]
 Compare all miRNAs against themselves
 
 options:
--  -h, --help              Show this help message and exit
--  -f FILE, --file FILE    TSV with expression [First step]
--  -r, --report            Generate a report
--  -s START, --start START
+- -h, --help              Show this help message and exit
+- -f FILE, --file FILE    TSV with expression [First step]
+- -r, --report            Generate a report
+- -s START, --start START
                            Edits range start
--  -e END, --end END       Edits range end (<exclusive>, up to that number!)
--  -p, --plot              Generate plots
--  -n PATH, --mircat PATH  Path to miRCat directory
--  -m, --merge             Merge mapping results
--  --rm                    Remove gaps in family sequential naming
--  --fullname              Adds a column with the full names
+- -e END, --end END       Edits range end (<exclusive>, up to that number!)
+- -g, --group             Group novel miRNAs into families of iso-forms (requires reports)",
+- -p, --plot              Generate plots
+- -n PATH, --mircat PATH  Path to miRCat directory
+- -m, --merge             Merge mapping results
+- --rm                    Remove gaps in family sequential naming
+- --fullname              Adds a column with the full names
 
 
 ### Mapping
@@ -55,4 +56,10 @@ Due to further merging some families disappear and leave gaps in the sequencial 
 ### Full name
 Adds a column with the full name of the novel miRNAs
 
-
+##### Full workflow
+- map (-f FILE)
+- merge (-m)
+- group (-g)
+- group_mature_star_into_same_family (-n [miRCat DIR])
+- remove_gaps_in_families (-rm)
+- generate_full_names (--fullname)
