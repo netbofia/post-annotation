@@ -18,9 +18,8 @@ expCols = [lib for lib in data.columns if lib.startswith("Lib")]
 
 labels = [["TDP"] * 3 + ["DX"] * 3, expCols]
 tuples = list(zip(*labels))
-cols = pd.MultiIndex.from_tuples(tuples, names=["Stage", "Library"])
+cols = pd.MultiIndex.from_tuples(tuples, names=["Tissue", "Library"])
 data.columns = cols
-
 
 
 # Start a new DataFrame with the row sums
@@ -56,12 +55,12 @@ plt.savefig("Fig 4(b).tif", dpi=300, pil_kwargs={"compression": "tiff_lzw"})
 
 
 data = data.apply(lambda x: x.apply(lambda y: math.log(y+1)))
-sns.clustermap(data, metric="canberra", method="average", dendrogram_ratio=0.20, cmap="inferno")
+sns.clustermap(data, metric="canberra", method="average", dendrogram_ratio=0.20, figsize=(9, 20), cmap="inferno")
 plt.savefig("Fig S2(a).tif", dpi=300, pil_kwargs={"compression": "tiff_lzw"})
 
 data = data.apply(lambda x: x.apply(lambda y: math.log(y+1)))
 data = data.drop(["mir-92_1", "mir-1260_1"])
-sns.clustermap(data, metric="canberra", method="average", dendrogram_ratio=0.20, cmap="inferno")
+sns.clustermap(data, metric="canberra", method="average", dendrogram_ratio=0.20,figsize=(9, 20), cmap="inferno")
 plt.savefig("Fig S2(b).tif", dpi=300, pil_kwargs={"compression": "tiff_lzw"})
 
 allSeq = sts7.loc[:, [col for col in sts7.columns if col.startswith("Lib")]]
