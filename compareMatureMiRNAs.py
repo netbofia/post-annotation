@@ -12,7 +12,9 @@ from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
 import glob2
-
+import string
+import string
+import math
 
 # TODO make report,figure,tables folder??
 
@@ -40,6 +42,7 @@ class SeqComparator:
             self.mircat = arguments.mircat
             self.families = None
             self.refactorStart = arguments.refactor
+
 
     def append_star_sequences(self):
         print("Not implemented")
@@ -415,6 +418,7 @@ class SeqComparator:
         return df
 
     def generate_full_names(self, df=None):
+        #TODO Specie
         # First run use
         if df is None:
             exp_mat_path = f"tables/all_seq-Renumbered.tsv"
@@ -454,7 +458,18 @@ class SeqComparator:
 
         # novel
         df.loc[df['name'].str.startswith("novel") & (~df["family"].astype(str).str.startswith("mir")), "FullName"] = \
-            "qsu-miRmp" + df.loc[~df["family"].astype(str).str.startswith("mir"), "family"]
+            "qsu-miRmp" + df.loc[
+                ~df["family"].astype(str).str.startswith("mir") & (df.family.notna()), "family"].astype(int).add(
+                    self.refactorStart).astype(str)
+        ##TODO add a letter to each family
+        min = df.loc[~df["family"].astype(str).str.startswith("mir") & (df.family.notna()), "family"].astype(int).min()
+        max = df.loc[~df["family"].astype(str).str.startswith("mir") & (df.family.notna()), "family"].astype(int).max()
+        for i in range(min, max):
+            for (forIndex,dfIndex) in enumerate(df.loc[
+                    ~df["family"].astype(str).str.startswith("mir") & (df.family.notna()) & (df.family == str(i)), ].index):
+                df.loc[dfIndex, 'FullName'] = df.loc[dfIndex, 'FullName']+self.alphabet(forIndex)
+
+
 
         df.loc[(df['name'].str.startswith("novel")) & (df["Star"] == False) & (~df["family"].astype(str).str.startswith("mir")), "FullName"] = \
             df.loc[~df['family'].astype(str).str.startswith("mir"), "FullName"] + "-5p"
@@ -474,21 +489,35 @@ class SeqComparator:
                 dataf = self.add_name_to_query(dataf, target_sequence, counter)
         return dataf
 
-    def refactor_families(self):
-        df = pd.read_table("tables/all_seq-fullname.tsv", sep="\t")
+    def refactor_families(self, df=None):
         if df is None:
             exp_mat_path = f"tables/all_seq-fullname.tsv"
             if not os.path.exists(exp_mat_path):
                 print(f"Missing file: {exp_mat_path}")
                 sys.exit(2)
-            df = pd.read_table(exp_mat_path, sep="\t", dtype={"family": str})
-            df.drop("sequence.1", axis=1, inplace=True)
-            df.drop("Unnamed: 0", axis=1, inplace=True)
+            df = pd.read_table(exp_mat_path, sep="\t", dtype={"family": str, "FullName": str})
+            #df.drop("sequence.1", axis=1, inplace=True)
+            #df.drop("Unnamed: 0", axis=1, inplace=True)
             df.index = df.sequence
             df.drop("sequence", axis=1, inplace=True)
             df.dropna(how="all", inplace=True)
             df = df[df.index.notnull()]
 
+            #getMin and Max
+            df.loc[df['name'] == "novel", 'family']
+
+
+
+    def alphabet(self, i):
+        alphabet = list(string.ascii_lowercase)
+        return alphabet[math.floor(i/math.pow(len(alphabet), 1))]+alphabet[i % len(alphabet)]
+        #TODO set for any amount of letters, requires if to add % of other letters besides units
+        #result=""
+        #for l in reversed(range(1,letters)):
+        #    if index>math.pow(len(alphabet),l):
+        #        result += alphabet[math.floor(index/math.pow(len(alphabet),l))]
+        #result += alphabet[index % len(alphabet)]
+        #return result
 
 
     def plot(self):
